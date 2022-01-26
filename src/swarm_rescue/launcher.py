@@ -201,15 +201,10 @@ class Launcher:
 
         for i in range(0, self.nb_rounds):
             ## new
-            # t = time.time()
             self.actual_round = i 
             ##
 
             elapsed_time_step, time_rescued_all, score_exploration, rescued_number = self.one_round()
-
-            ## new
-            # real_time_round = time.time() - t
-            ##
 
             self.total_time += elapsed_time_step
             self.mean_time = self.total_time / (i + 1)
