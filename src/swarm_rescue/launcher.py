@@ -21,10 +21,10 @@ from auto_evaluation.auto_review_template import write_pdf
 import csv
 import time 
 import os
-
+import cv2
 ##
 
-class MyMap(MyMapLidarCommunication):
+class MyMap(MyMapCompet01):
     pass
 
 
@@ -60,7 +60,7 @@ class Launcher:
 
         ## new ##
         self.my_pdf = write_pdf()
-        self.num_eq = input("Numero de l'équipe : ")
+        self.num_eq = 'x'
         self.name_map = input("Map (easy, no_comm_area, no_gps_area, kill_area): ")        
         self.wounded = self.my_map.number_wounded_persons
         ##
@@ -162,6 +162,9 @@ class Launcher:
         ## new
         im = engine._screen
         pygame.image.save(im, "auto_evaluation/equipe_{}/screen_{}_rd{}_eq{}.jpg".format(str(self.num_eq), self.name_map, str(self.actual_round), str(self.num_eq)))
+        
+        im_explo = self.my_map.explored_map._map_exploration
+        cv2.imwrite("auto_evaluation/equipe_{}/screen_explo_{}_rd{}_eq{}.jpg".format(str(self.num_eq), self.name_map, str(self.actual_round), str(self.num_eq)), im_explo)
         ##
 
         engine.terminate()
@@ -192,7 +195,6 @@ class Launcher:
             os.mkdir('auto_evaluation/equipe_{}'.format(str(self.num_eq)))
         except:
             pass
-        T0 = time.time()
         data = []
         data.append(('Group', 'Map', 'Round', 'Rescued Percent', 'Exploration Score', 
         'Elapsed Time Step', 'Time To Rescue All', 'Time Score', 'Final Score'))

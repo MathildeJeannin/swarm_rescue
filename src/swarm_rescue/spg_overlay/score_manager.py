@@ -55,5 +55,7 @@ class ScoreManager:
         self.score_time_step = score_time_step
         ##
 
+        print(score)
+
         return score
 
