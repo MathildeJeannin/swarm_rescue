@@ -25,7 +25,6 @@ class MyDroneRandom(DroneAbstract):
         self.angleStopTurning = 0
         self.isTurning = False
 
-
     def define_message(self):
         """
         Here, we don't need communication...

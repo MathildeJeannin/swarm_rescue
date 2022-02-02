@@ -48,14 +48,5 @@ class ScoreManager:
 
         score = score * 100.0
 
-        ## new
-        # pour rendre accessible ses valeurs au launcher 
-        self.score_exploration = score_exploration
-        self.percentage_rescue = percentage_rescue
-        self.score_time_step = score_time_step
-        ##
-
-        print(score)
-
-        return score
+        return score, percentage_rescue, score_time_step
 

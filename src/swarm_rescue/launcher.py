@@ -1,30 +1,21 @@
-from re import M
 import time
-from typing import final
-import pygame
 from simple_playgrounds.engine import Engine
 
 from spg_overlay.fps_display import FpsDisplay
 from spg_overlay.misc_data import MiscData
 from spg_overlay.score_manager import ScoreManager
+from spg_overlay.save_data import SaveData
 
 from maps.map_lidar_communication import MyMapLidarCommunication
 from maps.map_random import MyMapRandom
 from maps.map_compet_01 import MyMapCompet01
+from maps.map_compet_02 import MyMapCompet02
 
 from solutions.my_drone_lidar_communication import MyDroneLidarCommunication
 from solutions.my_drone_random import MyDroneRandom
 
-## new
-from auto_evaluation.auto_review_template import write_pdf
 
-import csv
-import time 
-import os
-import cv2
-##
-
-class MyMap(MyMapCompet01):
+class MyMap(MyMapRandom):
     pass
 
 
@@ -35,7 +26,7 @@ class MyDrone(MyDroneLidarCommunication):
 class Launcher:
     def __init__(self):
         self.display = True
-        self.nb_rounds = 5
+        self.nb_rounds = 3
         self.rescued_number = 0
         self.score_exploration = 0
         self.total_time = 0
@@ -58,12 +49,10 @@ class Launcher:
 
         self.my_map.set_drones(drones)
 
-        ## new ##
-        self.my_pdf = write_pdf()
-        self.num_eq = 'x'
-        self.name_map = input("Map (easy, no_comm_area, no_gps_area, kill_area): ")        
+        self.num_eq = drones[0].num_eq
+        self.zone = input("Zone (classic, no_comm_area, no_gps_area, kill_area): ")
         self.wounded = self.my_map.number_wounded_persons
-        ##
+        self.save_data = SaveData(self.num_eq)
 
     def reset(self):
         self.rescued_number = 0
@@ -97,7 +86,7 @@ class Launcher:
                 messages.append(one_message)
         return messages
 
-    def one_round(self):
+    def one_round(self, num_round):
         self.reset()
         my_drones = self.my_map.drones
         my_playground = self.my_map.playground
@@ -159,13 +148,9 @@ class Launcher:
 
             # fps_display.update()
 
-        ## new
-        im = engine._screen
-        pygame.image.save(im, "auto_evaluation/equipe_{}/screen_{}_rd{}_eq{}.jpg".format(str(self.num_eq), self.name_map, str(self.actual_round), str(self.num_eq)))
-        
-        im_explo = self.my_map.explored_map._map_exploration
-        cv2.imwrite("auto_evaluation/equipe_{}/screen_explo_{}_rd{}_eq{}.jpg".format(str(self.num_eq), self.name_map, str(self.actual_round), str(self.num_eq)), im_explo)
-        ##
+        last_image = engine._screen
+        last_image_explo = self.my_map.explored_map._map_exploration
+        self.save_data.save_images(last_image, last_image_explo, self.zone, num_round)
 
         engine.terminate()
 
@@ -173,44 +158,16 @@ class Launcher:
         # self.my_map.explored_map.display()
 
         return engine.elapsed_time, time_rescued_all, self.score_exploration, self.rescued_number
-    
 
-    ## new
-    def fill_csv(self, data):
-        fichier = open('auto_evaluation/equipe_{}/equipe_{}.csv'.format(str(self.num_eq), str(self.num_eq)),'a')
-        obj = csv.writer(fichier)
-        for element in data:
-            obj.writerow(element)
-        fichier.close()
-        
-
-    def fill_pdf(self, num_eq, nb_rounds):
-        self.my_pdf.generate_pdf(num_eq, nb_rounds)
-    ##
-
-    
     def go(self):
-        ## new
-        try:
-            os.mkdir('auto_evaluation/equipe_{}'.format(str(self.num_eq)))
-        except:
-            pass
-        data = []
-        data.append(('Group', 'Map', 'Round', 'Rescued Percent', 'Exploration Score', 
-        'Elapsed Time Step', 'Time To Rescue All', 'Time Score', 'Final Score'))
-        ##
-
-
         for i in range(0, self.nb_rounds):
-            ## new
-            self.actual_round = i 
-            ##
-
-            elapsed_time_step, time_rescued_all, score_exploration, rescued_number = self.one_round()
+            elapsed_time_step, time_rescued_all, score_exploration, rescued_number = self.one_round(i)
 
             self.total_time += elapsed_time_step
             self.mean_time = self.total_time / (i + 1)
-            final_score = self.score_manager.compute_score(rescued_number, score_exploration, time_rescued_all)
+            final_score, percent_rescued, score_time_step = self.score_manager.compute_score(rescued_number,
+                                                                                             score_exploration,
+                                                                                             time_rescued_all)
             print("*** Round", i,
                   ", rescued number =", rescued_number,
                   ", exploration score =", "{:.2f}".format(score_exploration),
@@ -218,18 +175,10 @@ class Launcher:
                   ", time to rescue all =", time_rescued_all,
                   ", final score = ", "{:.2f}".format(final_score)
                   )
-
-            ## new
-            percent_rescued = self.score_manager.percentage_rescue
-            score_time_step = self.score_manager.score_time_step
-            ## percent rescued to have comparable data in table/figure
-            data.append((str(self.num_eq), str(self.name_map), str(self.actual_round), str(percent_rescued), "%.2f" % score_exploration, 
-                        str(elapsed_time_step), str(time_rescued_all), str(score_time_step) , "%.2f" % final_score ))
-        
-        
-        self.fill_csv(data)
-        self.fill_pdf(self.num_eq, self.nb_rounds)
-        ##
+            self.save_data.add_line(
+                [(str(self.num_eq), str(self.zone), str(i), str(percent_rescued), "%.2f" % score_exploration,
+                  str(elapsed_time_step), str(time_rescued_all), str(score_time_step), "%.2f" % final_score)])
+        self.save_data.fill_pdf()
 
 
 if __name__ == "__main__":

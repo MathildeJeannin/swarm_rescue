@@ -20,8 +20,6 @@ class MyDroneLidarCommunication(DroneAbstract):
                          should_display_lidar=False,
                          **kwargs)
 
-
-
     def define_message(self):
         """
         Define the message, the drone will send to and receive from other surrounding drones.
